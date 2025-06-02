@@ -59,61 +59,61 @@ function ChessPiece({
 
 // Solid chess board component - ONE SOLID PIECE
 function SolidChessBoard({ shakeForce }: { shakeForce: number }) {
-  const boardGroupRef = useRef<THREE.Group>(null)
-  const safeYPosition = -0.3
+  // ADJUSTED: Board now rests on the table, recalculated based on table top change
+  const safeYPosition = -0.75
 
   // Create physics body for the entire board as one solid piece
-  const [boardRef] = useBox(() => ({
+  const [boardRef, boardApi] = useBox(() => ({
     mass: 0,
-    // Type assertion added here
     position: [0, safeYPosition, 0] as [number, number, number],
-    args: [4.0, 0.1, 4.0], // Solid board: 4x4 units, 0.1 thick
-    type: "Static",
+    args: [4.0, 0.1, 4.0], // Collision box size
+    type: "Kinematic", // Kinematic bodies can be moved manually and interact with dynamic bodies
     material: {
       friction: 0.9,
       restitution: 0.1,
     },
   }))
 
-  // Apply shake to the entire board as one unit
+  // Apply shake to the entire board as one unit using the physics API
   useFrame(() => {
-    if (boardGroupRef.current && shakeForce > 0) {
+    if (shakeForce > 0) {
       const time = Date.now() * 0.01
-      const intensity = shakeForce * 0.015
+      // REDUCED INTENSITY: Experiment with this multiplier to reduce clipping
+      const intensity = shakeForce * 0.008
 
-      // Apply rotation shake (small amounts)
-      boardGroupRef.current.rotation.x = Math.sin(time * 3) * intensity * 0.5
-      boardGroupRef.current.rotation.z = Math.cos(time * 2.5) * intensity * 0.5
-
-      // Apply ONLY UPWARD jumping motion - never downward
+      // Calculate new rotation and position
+      const rotX = Math.sin(time * 3) * intensity * 0.5
+      const rotZ = Math.cos(time * 2.5) * intensity * 0.5
       const jumpHeight = (Math.sin(time * 6) * 0.5 + 0.5) * intensity * 0.3
-      boardGroupRef.current.position.y = safeYPosition + jumpHeight
-    } else if (boardGroupRef.current) {
+      const newY = safeYPosition + jumpHeight
+
+      // Use boardApi to set position and rotation
+      boardApi.position.set(0, newY, 0)
+      boardApi.rotation.set(rotX, 0, rotZ) // Apply rotation to X and Z, Y remains 0 for typical board shake
+    } else {
       // Reset to safe position when not shaking
-      boardGroupRef.current.rotation.x = 0
-      boardGroupRef.current.rotation.z = 0
-      // Fix: Use the .set() method of the Vector3 object
-      boardGroupRef.current.position.set(0, safeYPosition, 0)
+      boardApi.position.set(0, safeYPosition, 0)
+      boardApi.rotation.set(0, 0, 0)
     }
   })
 
   return (
-    // Type assertion added here
-    <group ref={boardGroupRef} position={[0, safeYPosition, 0] as [number, number, number]}>
-      {/* Solid board with physics collision */}
-      <mesh ref={boardRef} receiveShadow castShadow>
+    // Attach boardRef to a <group> that contains the invisible collider and visible parts
+    <group ref={boardRef} receiveShadow castShadow>
+      {/* Invisible mesh to act as the actual physics collider for the board. */}
+      <mesh>
         <boxGeometry args={[4.0, 0.1, 4.0]} />
-        <meshStandardMaterial color="#d4a574" roughness={0.8} metalness={0.1} />
+        <meshBasicMaterial transparent opacity={0} /> {/* Fully transparent material */}
       </mesh>
 
-      {/* Visual chess squares (no physics, just decoration) */}
+      {/* Visual chess squares (no physics, just decoration) - now positioned ON TOP of the invisible collider */}
       {Array.from({ length: 8 }, (_, row) =>
         Array.from({ length: 8 }, (_, col) => {
           const isLight = (row + col) % 2 === 0
           const x = (col - 3.5) * 0.5
           const z = (row - 3.5) * 0.5
           return (
-            // Type assertion added here
+            // Squares are slightly above the invisible base
             <mesh key={`${row}-${col}`} position={[x, 0.051, z] as [number, number, number]} receiveShadow>
               <boxGeometry args={[0.48, 0.001, 0.48]} />
               <meshStandardMaterial color={isLight ? "#f0d9b5" : "#b58863"} roughness={0.8} metalness={0.1} />
@@ -122,7 +122,7 @@ function SolidChessBoard({ shakeForce }: { shakeForce: number }) {
         }),
       )}
 
-      {/* Board frame - Type assertion added here */}
+      {/* Board frame - These are now children of the physics group, so they move with the board */}
       <mesh position={[0, 0.05, -2.1] as [number, number, number]} receiveShadow castShadow>
         <boxGeometry args={[4.4, 0.15, 0.2]} />
         <meshStandardMaterial color="#654321" roughness={0.6} />
@@ -148,37 +148,38 @@ function Table() {
   // Table top - solid physics body - WIDER
   const [tableTopRef] = useBox(() => ({
     mass: 0,
-    // Type assertion added here
-    position: [0, -0.6, 0] as [number, number, number],
+    // ADJUSTED: Table top moved down to sit on top of legs
+    position: [0, -0.875, 0] as [number, number, number],
     args: [5.5, 0.15, 5.5],
     type: "Static",
   }))
 
-  // Table legs - solid physics bodies - REPOSITIONED - Type assertion added here
+  // Table legs - solid physics bodies - REPOSITIONED
+  // ADJUSTED: Legs moved down to touch the floor
   const [leg1Ref] = useBox(() => ({
     mass: 0,
-    position: [2.3, -1.5, 2.3] as [number, number, number],
+    position: [2.3, -1.95, 2.3] as [number, number, number],
     args: [0.15, 2, 0.15],
     type: "Static",
   }))
 
   const [leg2Ref] = useBox(() => ({
     mass: 0,
-    position: [-2.3, -1.5, 2.3] as [number, number, number],
+    position: [-2.3, -1.95, 2.3] as [number, number, number],
     args: [0.15, 2, 0.15],
     type: "Static",
   }))
 
   const [leg3Ref] = useBox(() => ({
     mass: 0,
-    position: [2.3, -1.5, -2.3] as [number, number, number],
+    position: [2.3, -1.95, -2.3] as [number, number, number],
     args: [0.15, 2, 0.15],
     type: "Static",
   }))
 
   const [leg4Ref] = useBox(() => ({
     mass: 0,
-    position: [-2.3, -1.5, -2.3] as [number, number, number],
+    position: [-2.3, -1.95, -2.3] as [number, number, number],
     args: [0.15, 2, 0.15],
     type: "Static",
   }))
@@ -213,7 +214,10 @@ function Table() {
 function Chair({
   position,
   rotation = [0, 0, 0],
-}: { position: [number, number, number]; rotation?: [number, number, number] }) {
+}: {
+  position: [number, number, number]
+  rotation?: [number, number, number]
+}) {
   // Chair seat - BIGGER
   const [seatRef] = useBox(() => ({
     mass: 0,
@@ -286,35 +290,40 @@ function TVScreen() {
     type: "Static",
   }))
 
+  // The CORRECT YouTube video ID from your provided embed code
+  const youtubeVideoId = 'DUq58vLiT8g';
+  // Constructing the embed URL with desired parameters: autoplay, mute, loop, no controls (controls=0)
+  const embedUrl = `https://www.youtube-nocookie.com/embed/${youtubeVideoId}?autoplay=1&mute=1&loop=1&playlist=${youtubeVideoId}&controls=0&modestbranding=1&rel=0&showinfo=0`;
+
   return (
     <group>
       {/* TV Frame */}
       <mesh ref={tvFrameRef} castShadow receiveShadow>
-        {/* <boxGeometry args={[6.0, 3.375, 0.3]} /> */}
+        <boxGeometry args={[6.0, 3.375, 0.3]} /> {/* This creates the visible black frame */}
         <meshStandardMaterial color="#1a1a1a" roughness={0.3} metalness={0.1} />
       </mesh>
 
-      {/* TV Screen with embedded YouTube iframe - UPDATED EMBED - Type assertion added here */}
+      {/* TV Screen with embedded YouTube iframe */}
       <Html
         transform
         occlude="blending"
         position={[-14.7, 2.5, 0] as [number, number, number]}
         rotation={[0, Math.PI / 2, 0] as [number, number, number]}
-        scale={[5.7, 3.2, 1]}
+        scale={[5.7, 3.2, 1]} // Adjusted scale to fit within the frame and maintain aspect
         style={{
-          width: "100px",
-          height: "56.25px",
+          width: "100px", // Base HTML element width, scale will adjust visual size
+          height: "56.25px", // 16:9 aspect ratio (100 * 9 / 16)
           backgroundColor: "#000",
           borderRadius: "0px",
           overflow: "hidden",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          pointerEvents: "none",
+          pointerEvents: "none", // Prevent HTML from capturing pointer events in 3D scene
         }}
       >
         <iframe
-          src="https://www.youtube.com/embed/DUq58vLiT8g?si=H8VlmTaryg6I_O36&controls=0&autoplay=1&loop=1&playlist=DUq58vLiT8g&mute=1"
+          src={embedUrl}
           title="YouTube video player"
           style={{
             width: "100%",
@@ -322,14 +331,17 @@ function TVScreen() {
             border: "none",
             display: "block",
             margin: "0",
-            pointerEvents: "none",
+            pointerEvents: "none", // Ensure iframe doesn't capture events
           }}
+          // Keep these attributes to allow proper video playback
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           referrerPolicy="strict-origin-when-cross-origin"
+          // allowfullscreen is now handled by the 'allow' attribute's 'fullscreen' if necessary,
+          // but for a no-controls, no-hover setup, explicit fullscreen might not be desired.
         />
       </Html>
 
-      {/* Nowayy Chess text above the TV - CLEAN BLACK TEXT - Type assertion added here */}
+      {/* Nowayy Chess text above the TV - CLEAN BLACK TEXT */}
       <Html
         transform
         position={[-14.9, 5.5, 0] as [number, number, number]}
@@ -350,6 +362,7 @@ function TVScreen() {
     </group>
   )
 }
+
 
 // Wall Text Component - USING HTML INSTEAD OF 3D TEXT
 function WallText() {
@@ -512,15 +525,15 @@ function ChessScene({ shakeForce, resetTrigger }: { shakeForce: number; resetTri
           const x = (colIndex - 3.5) * 0.5
           const z = (rowIndex - 3.5) * 0.5
 
-          const boardSurface = -0.3 + 0.05
+          // ADJUSTED: Pieces should now sit on the adjusted board surface
+          const boardSurface = -0.7 // Adjusted to be on top of the visible squares
           const pieceHeight = getPieceHeight(piece)
-          const pieceY = boardSurface + pieceHeight / 2
+          const pieceY = boardSurface + pieceHeight / 2 + 0.01 // Small offset to avoid z-fighting with board squares
 
           newPieces.push({
             id: `${rowIndex}-${colIndex}`,
             piece,
             isWhite,
-            // Type assertion added here
             position: [x, pieceY, z] as [number, number, number],
           })
         }
@@ -539,13 +552,16 @@ function ChessScene({ shakeForce, resetTrigger }: { shakeForce: number; resetTri
       <WallText />
 
       {/* Two chairs on opposite sides - Type assertion added here */}
-      <Chair position={[0, -1.5, 5] as [number, number, number]} rotation={[0, Math.PI, 0] as [number, number, number]} />
+      <Chair
+        position={[0, -1.5, 5] as [number, number, number]}
+        rotation={[0, Math.PI, 0] as [number, number, number]}
+      />
       <Chair position={[0, -1.5, -5] as [number, number, number]} rotation={[0, 0, 0] as [number, number, number]} />
 
       {pieces.map((pieceData) => (
         <ChessPiece
           key={`${pieceData.id}-${resetTrigger}`}
-          position={pieceData.position} // This is already correctly typed from newPieces
+          position={pieceData.position}
           piece={pieceData.piece}
           isWhite={pieceData.isWhite}
           shakeForce={shakeForce}
@@ -587,8 +603,12 @@ function LoadingScreen() {
       <p style={{ fontSize: "16px", opacity: 0.8 }}>If u come for the king...</p>
       <style jsx>{`
         @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
         }
       `}</style>
     </div>
@@ -627,15 +647,16 @@ export default function Component() {
     setShakeIntensity(newIntensity)
     setShakeForce(newIntensity)
 
+    // The shake force is applied as an impulse, so it should reset after a short duration
     setTimeout(() => {
       setShakeForce(0)
-    }, 500)
+    }, 500) // Apply force for 0.5 seconds
   }
 
   const resetBoard = () => {
     setShakeIntensity(0)
     setShakeForce(0)
-    setResetTrigger((prev) => prev + 1)
+    setResetTrigger((prev) => prev + 1) // Trigger re-rendering of pieces
   }
 
   if (isLoading) {
@@ -662,7 +683,13 @@ export default function Component() {
             defaultContactMaterial={{
               friction: 0.4,
               restitution: 0.3,
+              // *** IMPORTANT ADDITIONS for stability ***
+              contactEquationStiffness: 1e7, // Increase stiffness of contacts
+              contactEquationRelaxation: 4, // Adjust relaxation of contacts
             }}
+            // *** IMPORTANT ADDITIONS for stability ***
+            iterations={20} // Increased physics solver iterations for stability
+            maxSubSteps={20} // Allow more sub-steps per frame for stability
           >
             <ambientLight intensity={0.4} />
             <directionalLight
