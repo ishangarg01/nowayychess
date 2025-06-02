@@ -65,7 +65,8 @@ function SolidChessBoard({ shakeForce }: { shakeForce: number }) {
   // Create physics body for the entire board as one solid piece
   const [boardRef] = useBox(() => ({
     mass: 0,
-    position: [0, safeYPosition, 0],
+    // Type assertion added here
+    position: [0, safeYPosition, 0] as [number, number, number],
     args: [4.0, 0.1, 4.0], // Solid board: 4x4 units, 0.1 thick
     type: "Static",
     material: {
@@ -91,12 +92,14 @@ function SolidChessBoard({ shakeForce }: { shakeForce: number }) {
       // Reset to safe position when not shaking
       boardGroupRef.current.rotation.x = 0
       boardGroupRef.current.rotation.z = 0
-      boardGroupRef.current.position.y = safeYPosition
+      // Fix: Use the .set() method of the Vector3 object
+      boardGroupRef.current.position.set(0, safeYPosition, 0)
     }
   })
 
   return (
-    <group ref={boardGroupRef} position={[0, safeYPosition, 0]}>
+    // Type assertion added here
+    <group ref={boardGroupRef} position={[0, safeYPosition, 0] as [number, number, number]}>
       {/* Solid board with physics collision */}
       <mesh ref={boardRef} receiveShadow castShadow>
         <boxGeometry args={[4.0, 0.1, 4.0]} />
@@ -110,7 +113,8 @@ function SolidChessBoard({ shakeForce }: { shakeForce: number }) {
           const x = (col - 3.5) * 0.5
           const z = (row - 3.5) * 0.5
           return (
-            <mesh key={`${row}-${col}`} position={[x, 0.051, z]} receiveShadow>
+            // Type assertion added here
+            <mesh key={`${row}-${col}`} position={[x, 0.051, z] as [number, number, number]} receiveShadow>
               <boxGeometry args={[0.48, 0.001, 0.48]} />
               <meshStandardMaterial color={isLight ? "#f0d9b5" : "#b58863"} roughness={0.8} metalness={0.1} />
             </mesh>
@@ -118,20 +122,20 @@ function SolidChessBoard({ shakeForce }: { shakeForce: number }) {
         }),
       )}
 
-      {/* Board frame */}
-      <mesh position={[0, 0.05, -2.1]} receiveShadow castShadow>
+      {/* Board frame - Type assertion added here */}
+      <mesh position={[0, 0.05, -2.1] as [number, number, number]} receiveShadow castShadow>
         <boxGeometry args={[4.4, 0.15, 0.2]} />
         <meshStandardMaterial color="#654321" roughness={0.6} />
       </mesh>
-      <mesh position={[0, 0.05, 2.1]} receiveShadow castShadow>
+      <mesh position={[0, 0.05, 2.1] as [number, number, number]} receiveShadow castShadow>
         <boxGeometry args={[4.4, 0.15, 0.2]} />
         <meshStandardMaterial color="#654321" roughness={0.6} />
       </mesh>
-      <mesh position={[-2.1, 0.05, 0]} receiveShadow castShadow>
+      <mesh position={[-2.1, 0.05, 0] as [number, number, number]} receiveShadow castShadow>
         <boxGeometry args={[0.2, 0.15, 4.4]} />
         <meshStandardMaterial color="#654321" roughness={0.6} />
       </mesh>
-      <mesh position={[2.1, 0.05, 0]} receiveShadow castShadow>
+      <mesh position={[2.1, 0.05, 0] as [number, number, number]} receiveShadow castShadow>
         <boxGeometry args={[0.2, 0.15, 4.4]} />
         <meshStandardMaterial color="#654321" roughness={0.6} />
       </mesh>
@@ -144,36 +148,37 @@ function Table() {
   // Table top - solid physics body - WIDER
   const [tableTopRef] = useBox(() => ({
     mass: 0,
-    position: [0, -0.6, 0],
+    // Type assertion added here
+    position: [0, -0.6, 0] as [number, number, number],
     args: [5.5, 0.15, 5.5],
     type: "Static",
   }))
 
-  // Table legs - solid physics bodies - REPOSITIONED
+  // Table legs - solid physics bodies - REPOSITIONED - Type assertion added here
   const [leg1Ref] = useBox(() => ({
     mass: 0,
-    position: [2.3, -1.5, 2.3],
+    position: [2.3, -1.5, 2.3] as [number, number, number],
     args: [0.15, 2, 0.15],
     type: "Static",
   }))
 
   const [leg2Ref] = useBox(() => ({
     mass: 0,
-    position: [-2.3, -1.5, 2.3],
+    position: [-2.3, -1.5, 2.3] as [number, number, number],
     args: [0.15, 2, 0.15],
     type: "Static",
   }))
 
   const [leg3Ref] = useBox(() => ({
     mass: 0,
-    position: [2.3, -1.5, -2.3],
+    position: [2.3, -1.5, -2.3] as [number, number, number],
     args: [0.15, 2, 0.15],
     type: "Static",
   }))
 
   const [leg4Ref] = useBox(() => ({
     mass: 0,
-    position: [-2.3, -1.5, -2.3],
+    position: [-2.3, -1.5, -2.3] as [number, number, number],
     args: [0.15, 2, 0.15],
     type: "Static",
   }))
@@ -219,6 +224,7 @@ function Chair({
   }))
 
   // Chair back - BIGGER
+  // Type assertion added here for backPosition
   const backPosition: [number, number, number] = [
     position[0] - Math.sin(rotation[1]) * 0.8,
     position[1] + 1.0,
@@ -234,7 +240,8 @@ function Chair({
   }))
 
   // Chair legs - REPOSITIONED for bigger chair
-  const legPositions = [
+  // Type assertion added for each element in legPositions
+  const legPositions: [number, number, number][] = [
     [position[0] + 0.8, position[1] - 0.8, position[2] + 0.8],
     [position[0] - 0.8, position[1] - 0.8, position[2] + 0.8],
     [position[0] + 0.8, position[1] - 0.8, position[2] - 0.8],
@@ -255,9 +262,9 @@ function Chair({
         <meshStandardMaterial color="#2c2c2c" roughness={0.7} />
       </mesh>
 
-      {/* Chair legs */}
+      {/* Chair legs - Type assertion added here */}
       {legPositions.map((legPos, index) => (
-        <mesh key={index} position={legPos} castShadow receiveShadow>
+        <mesh key={index} position={legPos as [number, number, number]} castShadow receiveShadow>
           <boxGeometry args={[0.15, 1.6, 0.15]} />
           <meshStandardMaterial color="#1a1a1a" roughness={0.8} />
         </mesh>
@@ -271,8 +278,10 @@ function TVScreen() {
   // TV Frame - Black border - SMALLER SIZE - ON LEFT WALL
   const [tvFrameRef] = useBox(() => ({
     mass: 0,
-    position: [-14.9, 2.5, 0],
-    rotation: [0, Math.PI / 2, 0],
+    // Type assertion added here
+    position: [-14.9, 2.5, 0] as [number, number, number],
+    // Type assertion added here
+    rotation: [0, Math.PI / 2, 0] as [number, number, number],
     args: [6.0, 3.375, 0.3],
     type: "Static",
   }))
@@ -285,12 +294,12 @@ function TVScreen() {
         <meshStandardMaterial color="#1a1a1a" roughness={0.3} metalness={0.1} />
       </mesh>
 
-      {/* TV Screen with embedded YouTube iframe - UPDATED EMBED */}
+      {/* TV Screen with embedded YouTube iframe - UPDATED EMBED - Type assertion added here */}
       <Html
         transform
         occlude="blending"
-        position={[-14.7, 2.5, 0]}
-        rotation={[0, Math.PI / 2, 0]}
+        position={[-14.7, 2.5, 0] as [number, number, number]}
+        rotation={[0, Math.PI / 2, 0] as [number, number, number]}
         scale={[5.7, 3.2, 1]}
         style={{
           width: "100px",
@@ -320,11 +329,11 @@ function TVScreen() {
         />
       </Html>
 
-      {/* Nowayy Chess text above the TV - CLEAN BLACK TEXT */}
+      {/* Nowayy Chess text above the TV - CLEAN BLACK TEXT - Type assertion added here */}
       <Html
         transform
-        position={[-14.9, 5.5, 0]}
-        rotation={[0, Math.PI / 2, 0]}
+        position={[-14.9, 5.5, 0] as [number, number, number]}
+        rotation={[0, Math.PI / 2, 0] as [number, number, number]}
         style={{
           color: "#000000",
           fontSize: "32px",
@@ -345,10 +354,11 @@ function TVScreen() {
 // Wall Text Component - USING HTML INSTEAD OF 3D TEXT
 function WallText() {
   return (
+    // Type assertion added here
     <Html
       transform
-      position={[0, 3, 14.8]}
-      rotation={[0, Math.PI, 0]}
+      position={[0, 3, 14.8] as [number, number, number]}
+      rotation={[0, Math.PI, 0] as [number, number, number]}
       style={{
         color: "#000000",
         fontSize: "48px",
@@ -369,7 +379,8 @@ function WallText() {
 function WoodenFloor() {
   const [ref] = useBox(() => ({
     mass: 0,
-    position: [0, -3, 0],
+    // Type assertion added here
+    position: [0, -3, 0] as [number, number, number],
     args: [40, 0.1, 40],
     type: "Static",
   }))
@@ -386,32 +397,32 @@ function WoodenFloor() {
 function RoomWalls() {
   return (
     <group>
-      {/* Back wall */}
-      <mesh position={[0, 2.5, -15]} receiveShadow>
+      {/* Back wall - Type assertion added here */}
+      <mesh position={[0, 2.5, -15] as [number, number, number]} receiveShadow>
         <boxGeometry args={[30, 15, 0.2]} />
         <meshStandardMaterial color="#f5f5f5" roughness={0.5} />
       </mesh>
 
-      {/* Front wall */}
-      <mesh position={[0, 2.5, 15]} receiveShadow>
+      {/* Front wall - Type assertion added here */}
+      <mesh position={[0, 2.5, 15] as [number, number, number]} receiveShadow>
         <boxGeometry args={[30, 15, 0.2]} />
         <meshStandardMaterial color="#f5f5f5" roughness={0.5} />
       </mesh>
 
-      {/* Left wall */}
-      <mesh position={[-15, 2.5, 0]} receiveShadow>
+      {/* Left wall - Type assertion added here */}
+      <mesh position={[-15, 2.5, 0] as [number, number, number]} receiveShadow>
         <boxGeometry args={[0.2, 15, 30]} />
         <meshStandardMaterial color="#f5f5f5" roughness={0.5} />
       </mesh>
 
-      {/* Right wall */}
-      <mesh position={[15, 2.5, 0]} receiveShadow>
+      {/* Right wall - Type assertion added here */}
+      <mesh position={[15, 2.5, 0] as [number, number, number]} receiveShadow>
         <boxGeometry args={[0.2, 15, 30]} />
         <meshStandardMaterial color="#f5f5f5" roughness={0.5} />
       </mesh>
 
-      {/* Ceiling */}
-      <mesh position={[0, 10, 0]} receiveShadow>
+      {/* Ceiling - Type assertion added here */}
+      <mesh position={[0, 10, 0] as [number, number, number]} receiveShadow>
         <boxGeometry args={[30, 0.2, 30]} />
         <meshStandardMaterial color="#f8f8f8" roughness={0.5} />
       </mesh>
@@ -421,7 +432,7 @@ function RoomWalls() {
 
 // Custom camera controls to prevent going through walls
 function CameraController() {
-  const controlsRef = useRef<any>()
+  const controlsRef = useRef<any>(null)
 
   useFrame(({ camera }) => {
     if (controlsRef.current) {
@@ -458,7 +469,8 @@ function CameraController() {
       maxPolarAngle={Math.PI / 2}
       rotateSpeed={0.7}
       zoomSpeed={0.8}
-      target={[0, 0, 0]}
+      // Type assertion added here
+      target={[0, 0, 0] as [number, number, number]}
       enableDamping={true}
       dampingFactor={0.05}
     />
@@ -508,6 +520,7 @@ function ChessScene({ shakeForce, resetTrigger }: { shakeForce: number; resetTri
             id: `${rowIndex}-${colIndex}`,
             piece,
             isWhite,
+            // Type assertion added here
             position: [x, pieceY, z] as [number, number, number],
           })
         }
@@ -525,14 +538,14 @@ function ChessScene({ shakeForce, resetTrigger }: { shakeForce: number; resetTri
       <TVScreen />
       <WallText />
 
-      {/* Two chairs on opposite sides */}
-      <Chair position={[0, -1.5, 5]} rotation={[0, Math.PI, 0]} />
-      <Chair position={[0, -1.5, -5]} rotation={[0, 0, 0]} />
+      {/* Two chairs on opposite sides - Type assertion added here */}
+      <Chair position={[0, -1.5, 5] as [number, number, number]} rotation={[0, Math.PI, 0] as [number, number, number]} />
+      <Chair position={[0, -1.5, -5] as [number, number, number]} rotation={[0, 0, 0] as [number, number, number]} />
 
       {pieces.map((pieceData) => (
         <ChessPiece
           key={`${pieceData.id}-${resetTrigger}`}
-          position={pieceData.position}
+          position={pieceData.position} // This is already correctly typed from newPieces
           piece={pieceData.piece}
           isWhite={pieceData.isWhite}
           shakeForce={shakeForce}
@@ -636,9 +649,8 @@ export default function Component() {
         <Canvas
           shadows
           camera={{
-            // position: isMobile ? [-5, 3, 10] : [-5, 3, 10], // Front view facing the board and screen
-            // position: isMobile ? [10, 3, 0] : [12, 3, 0], // Adjusted position: more positive X to be on the right side
-            position: isMobile ? [12, 4, 0] : [15, 4, 0], // Adjusted position: more positive X to be further back
+            // Type assertion added here
+            position: (isMobile ? [12, 4, 0] : [15, 4, 0]) as [number, number, number],
             fov: isMobile ? 60 : 50,
             near: 0.1,
             far: 1000,
@@ -654,7 +666,8 @@ export default function Component() {
           >
             <ambientLight intensity={0.4} />
             <directionalLight
-              position={[10, 15, 5]}
+              // Type assertion added here
+              position={[10, 15, 5] as [number, number, number]}
               intensity={1.2}
               castShadow
               shadow-mapSize-width={2048}
@@ -665,7 +678,11 @@ export default function Component() {
               shadow-camera-top={20}
               shadow-camera-bottom={-20}
             />
-            <pointLight position={[-5, 10, -5]} intensity={0.6} />
+            <pointLight
+              // Type assertion added here
+              position={[-5, 10, -5] as [number, number, number]}
+              intensity={0.6}
+            />
 
             <ChessScene shakeForce={shakeForce} resetTrigger={resetTrigger} />
 
